@@ -20,6 +20,10 @@ import minorminer
 import numpy as np
 from pyqubo import Array, Constraint, Placeholder, solve_qubo
 
+def dist_cal(x_1,y_1,x_2,y_2):
+    dist = abs(math.sqrt(x_1 ** 2 + y_1 ** 2) - math.sqrt(x_2 ** 2 + y_2 ** 2))
+    return dist
+
 #%%
 N = 64      # 変数の数
 rho = 0.5   # QUBO行列のスパースネス（非ゼロ変数の数の割合）
@@ -48,6 +52,25 @@ for i in range(N):
                 J[(i, j)] = q[i][j]
 
             Q[(i, j)] = q[i][j]
+num = 5
+
+start_x = np.round(1000 * np.random.rand())
+start_y = np.round(1000 * np.random.rand())
+task_x_start = np.round(1000 * np.random.rand(num))
+task_y_start = np.round(1000 * np.random.rand(num))
+task_x_end = np.round(1000 * np.random.rand(num))
+task_y_end = np.round(1000 * np.random.rand(num))
+velocity = np.round(100 * np.random.rand(num))
+
+dists = []
+
+for i in range(num):
+    x = []
+    y = []
+    for j in range(i,num):
+        dists.append(dist_cal(task_x_end[i],task_y_end[i],task_x_start[j],task_y_start[j]))
+
+H_dists = sum()
 
 # この時点でIsing形式用のJ, h, BINARY形式用のQが生成済みである。
 #%%
@@ -58,7 +81,7 @@ bqm = dimod.BinaryQuadraticModel.from_qubo(Q)
 
 # %%
 url = "https://cloud.dwavesys.com/sapi"
-token = "sigU-25f9897d301781a321aeca3e7d18d59c599234c3"
+token = "sigU-299eaf05a65136c85cdfe87be0618aadec5edc91"
 solver_name = "DW_2000Q_5"
 
 sampler = DWaveSampler(endpoint=url, token=token, solver=solver_name)
