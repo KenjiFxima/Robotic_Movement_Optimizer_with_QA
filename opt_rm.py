@@ -101,12 +101,15 @@ def held_karp(task_start, task_end, velocity):
 
 
 def generate_distances(n):
-    dists = [[0] * n for i in range(n)]
+    task_start = []
+    task_end = []
+    velocity = []
     for i in range(n):
-        for j in range(i + 1, n):
-            dists[i][j] = dists[j][i] = random.randint(1, 99)
+        task_start.append([random.randint(1, 999),random.randint(1,999)])
+        task_end.append([random.randint(1, 999),random.randint(1,999)])
+        velocity.append(random.randint(1,99))
 
-    return dists
+    return task_start,task_end,velocity
 
 
 def read_distances(filename):
@@ -142,7 +145,9 @@ if __name__ == '__main__':
         print(task_start,task_end,velocity)
 
     else:
-        dists = generate_distances(int(arg))
+        task_start, task_end, velocity = generate_distances(int(arg))
+        print(task_start)
+        print(task_end)
 
     # Pretty-print the distance matrix
     print('')
