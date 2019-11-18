@@ -8,8 +8,8 @@
 # インストールすれば dimod, minorminerなどのD-Wave Ocean SDKに含まれる
 # モジュールとともに numpy などの依存関係のあるパッケージもインストールされる。
 #!pip install dwave-ocean-sdk
-!pip show dwave-ocean-sdk
-!pip show numpy
+#!pip show dwave-ocean-sdk
+#!pip show numpy
 
 #%%
 import dimod
@@ -20,15 +20,37 @@ import minorminer
 import numpy as np
 from pyqubo import Array, Constraint, Placeholder, solve_qubo
 
-def dist_cal(x_1,y_1,x_2,y_2):
-    dist = abs(math.sqrt(x_1 ** 2 + y_1 ** 2) - math.sqrt(x_2 ** 2 + y_2 ** 2))
+def dist_cal(start, end):
+    dist = math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)
     return dist
 
-#%%
+def read_distances(filename):
+    task_start = []
+    task_end = []
+    velocity = []
+    with open(filename, 'r') as f:
+        for line in f:
+            # Skip comments
+            if line[0] == '#':
+                continue
+            else:
+                l = list(map(int, (line.strip()).split(',')))
+                task_start.append(tuple(l[0:2]))
+                task_end.append(tuple(l[2:4]))
+                velocity.append(l[4])
+
+    return task_start, task_end, velocity
+
 N = 64      # 変数の数
 rho = 0.5   # QUBO行列のスパースネス（非ゼロ変数の数の割合）
 
 # 問題インスタンスの生成
+arg = sys.argv[1]
+task_start, task_end, velocity = read_distances(arg)
+n = len(velocity)
+
+print(task_start,task_end,velocity)
+
 q = np.triu(np.random.normal(0, 1, [N, N]).astype(np.float64))
 Nzero = int(math.floor(N * (N - 1) / 2 * (1.0 - rho)))
 while Nzero > 0:
@@ -54,12 +76,9 @@ for i in range(N):
             Q[(i, j)] = q[i][j]
 num = 5
 
-start_x = np.round(1000 * np.random.rand())
-start_y = np.round(1000 * np.random.rand())
-task_x_start = np.round(1000 * np.random.rand(num))
-task_y_start = np.round(1000 * np.random.rand(num))
-task_x_end = np.round(1000 * np.random.rand(num))
-task_y_end = np.round(1000 * np.random.rand(num))
+start = [0,0]
+task_start = [np.round(1000 * np.random.rand(num)) for i in range(2)]
+task_end = [np.round(1000 * np.random.rand(num)) for i in range(2)]
 velocity = np.round(100 * np.random.rand(num))
 
 dists = []
