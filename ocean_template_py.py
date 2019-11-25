@@ -12,6 +12,20 @@
 #!pip show numpy
 
 import dimod
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ocean_template.py:    D-Wave Ocean SDKを用いた最適化用途のサンプリングテンプレートコード
+
+#%%
+# 本コードの実行のためには dwave-ocean-sdk モジュールがインストールされている
+# 必要があります。以下の1行のコメントアウトを解除して、dwave-ocean-sdkを
+# インストールすれば dimod, minorminerなどのD-Wave Ocean SDKに含まれる
+# モジュールとともに numpy などの依存関係のあるパッケージもインストールされる。
+#!pip install dwave-ocean-sdk
+#!pip show dwave-ocean-sdk
+#!pip show numpy
+
+import dimod
 from dwave.embedding import MinimizeEnergy, embed_bqm
 from dwave.system import DWaveSampler
 import math
