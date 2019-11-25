@@ -1,0 +1,7 @@
+# Example from https://en.wikipedia.org/wiki/Held-Karp_algorithm
+# Optimal cost: R0 a' c' s b e'
+287, 619, 17, 479, 94
+595, 627, 592, 52, 58
+488, 353, 43, 565, 68
+450, 142, 688, 580, 63
+136, 403, 630, 170, 70
