@@ -1,19 +1,16 @@
 import math
-<<<<<<< HEAD
-import sys
+import minorminer
 import numpy as np
-
-=======
->>>>>>> ec550e7829356d401baee9f63536ed13a23081f9
+from pyqubo import Array, Constraint, Placeholder, solve_qubo
+import sys
 
 def dist_cal(start, end):
     dist = math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)
     return dist
-<<<<<<< HEAD
 
 def read_distances(filename):
     task = []
-    set = []
+    s = []
     velocity = []
     with open(filename, 'r') as f:
         for line in f:
@@ -22,9 +19,10 @@ def read_distances(filename):
                 continue
             else:
                 l = list(map(int, (line.strip()).split(',')))
-                set.append(list(l[0:2]))
-                set.append(list(l[2:4]))
+                s.append(list(l[0:2]))
+                s.append(list(l[2:4]))
                 velocity.append(l[4])
+    set = np.array(s)
     n = int(len(set) / 2)
     for i in range(n):
         task.append(set)
@@ -32,48 +30,44 @@ def read_distances(filename):
 
     return task, velocity
 
+#問題の読み込み
 arg = sys.argv[1]
 task, velocity = read_distances(arg)
-print(task)
 n = len(velocity)
-start =[0,0]
-w0 = [[] for i in range(n)]
-w = [[] for i in range(n*2)]
+
+# 問題インスタンスの生成
+x = Array.create('x',shape = (n,n * 2),vartype = 'BINARY')
+start = [0,0]
+
+w0 = []
+w = [[] for i in range(n * 2)]
+
 for i in range(n * 2):
-    for j in range(n):
-        w0[j].append(dist_cal(start, task[0][i]))
-    for j in range(n*2):
+    w0.append(dist_cal(start, task[0][i]))
+for i in range(n * 2):
+    for j in range(n * 2):
         w[j].append(dist_cal(task[0][i],task[0][j]))
+
 w0 = np.array(w0)
 w = np.array(w)
-print(w0)
-print(w)
-=======
->>>>>>> ec550e7829356d401baee9f63536ed13a23081f9
-'''
-ans = dist_cal((0,0),(17,479))
-ans += dist_cal((287,619),((43,565)))
-ans += dist_cal((488,353),(450,142))
-ans += dist_cal((688,580),(595,627))
-ans += dist_cal((592,52),(630,170))
-ans += dist_cal((136,403),(0,0))
-<<<<<<< HEAD
+p = []
+for i in range(n):
+    p.append(max(np.amax(w[:n,i*2:(i+1)*2]),np.amax(w0[i*2:(i+1)*2]))+np.amax(w[i]))
+Pt = max(p)
 
-=======
-'''
->>>>>>> ec550e7829356d401baee9f63536ed13a23081f9
-ans = dist_cal((0,0),(136,403))
-ans += dist_cal((630,170),((43,565)))
-ans += dist_cal((488,353),(287,619))
-ans += dist_cal((17,479),(595,627))
-ans += dist_cal((592,52),(688,580))
-ans += dist_cal((450,142),(0,0))
+H_dists = sum(x[0] * w0)
+for t in range(1,n-1):
+    for j in range(n * 2):
+        H_dists += sum(np.multiply(x[t + 1] * w[j],x[t][j]))
+H_dists = sum(x[n-1] * w0)
+H_tasks = 0
+for i in range(n):
+    H_tasks += p[i] * (sum((sum(x[:n,i*2:(i+1)*2])) - 1) ** 2)
+H_time = 0
+for i in range(n):
+    H_time += Pt * ((sum(x[i]) - 1) ** 2)
 
-print(dist_cal((287,619),(17,479)))
-
-<<<<<<< HEAD
-print(ans)
-'''
-=======
-print(ans)
->>>>>>> ec550e7829356d401baee9f63536ed13a23081f9
+H_cost = H_dists + H_tasks + H_time
+model = H_cost.compile()
+Q, offset = model.to_qubo()
+print(x)

@@ -66,7 +66,7 @@ task, velocity = read_distances(arg)
 n = len(velocity)
 
 # 問題インスタンスの生成
-x = Array.create('x',shape = (n * 2,5),vartype = 'BINARY')
+x = Array.create('x',shape = (n,n * 5),vartype = 'BINARY')
 start = [0,0]
 print(task,velocity)
 
@@ -83,23 +83,25 @@ w0 = np.array(w0)
 w = np.array(w)
 p = []
 for i in range(n):
-    p.append(max(np.amax(w[:n,i*2:(i+1)*2]),max(w0[i*2:(i+1)*2]))+max(np.amax(w[i])))
-
-h = list(np.diag(q))
-S = {}
-J = {}
-Q = {}
-
+    p.append(max(np.amax(w[:n,i*2:(i+1)*2]),max(w0[i*2:(i+1)*2]))+np.amax(w[i]))
+Pt = max(p)
 H_dists = sum(x[0] * w0)
-for i in range(1,n):
+for t in range(1,n):
     for j in range(n * 2):
-        H_dists += sum(np.multiply(x[i + 1] * w[j],x[i][j]))
+        H_dists += sum(np.multiply(x[t + 1] * w[j],x[t][j]))
 H_dists = sum(x[n] * w0)
+H_tasks = 0
+for i in range(n):
+    H_tasks += p[i] * ((sum(sum(x[:n,i*2:(i+1)*2])) - 1) ** 2)
+H_time = 0
+for i in range(n):
+    H_time += Pt * ((sum(x[i]) - 1) ** 2)
 
-H_tasks = sum((sum(x) ** 2))
+H_cost = H_dists + H_tasks + H_time
+model = H_cost.compile()
+Q, offset = model.to_qubo()
 
 # この時点でIsing形式用のJ, h, BINARY形式用のQが生成済みである。
-#%%
 # ISING形式の場合
 #bqm = dimod.BinaryQuadraticModel.from_ising(h, J)
 # BINARY形式の場合
