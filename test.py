@@ -1,3 +1,32 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ocean_template.py:    D-Wave Ocean SDKを用いた最適化用途のサンプリングテンプレートコード
+
+#%%
+# 本コードの実行のためには dwave-ocean-sdk モジュールがインストールされている
+# 必要があります。以下の1行のコメントアウトを解除して、dwave-ocean-sdkを
+# インストールすれば dimod, minorminerなどのD-Wave Ocean SDKに含まれる
+# モジュールとともに numpy などの依存関係のあるパッケージもインストールされる。
+#!pip install dwave-ocean-sdk
+#!pip show dwave-ocean-sdk
+#!pip show numpy
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ocean_template.py:    D-Wave Ocean SDKを用いた最適化用途のサンプリングテンプレートコード
+
+#%%
+# 本コードの実行のためには dwave-ocean-sdk モジュールがインストールされている
+# 必要があります。以下の1行のコメントアウトを解除して、dwave-ocean-sdkを
+# インストールすれば dimod, minorminerなどのD-Wave Ocean SDKに含まれる
+# モジュールとともに numpy などの依存関係のあるパッケージもインストールされる。
+#!pip install dwave-ocean-sdk
+#!pip show dwave-ocean-sdk
+#!pip show numpy
+
+import dimod
+from dwave.embedding import MinimizeEnergy, embed_bqm
+from dwave.system import DWaveSampler
 import math
 import minorminer
 import numpy as np
@@ -52,9 +81,8 @@ w0 = np.array(w0)
 w = np.array(w)
 p = []
 for i in range(n):
-    p.append(max(np.amax(w[:n,i*2:(i+1)*2]),np.amax(w0[i*2:(i+1)*2]))+np.amax(w[i]))
+    p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i]))
 Pt = max(p)
-
 H_dists = sum(x[0] * w0)
 for t in range(1,n-1):
     for j in range(n * 2):
@@ -62,7 +90,7 @@ for t in range(1,n-1):
 H_dists = sum(x[n-1] * w0)
 H_tasks = 0
 for i in range(n):
-    H_tasks += p[i] * (sum((sum(x[:n,i*2:(i+1)*2])) - 1) ** 2)
+    H_tasks += p[i] * ((sum(sum(x[:n,i * 2:(i + 1) * 2])) - 1) ** 2)
 H_time = 0
 for i in range(n):
     H_time += Pt * ((sum(x[i]) - 1) ** 2)
@@ -70,4 +98,11 @@ for i in range(n):
 H_cost = H_dists + H_tasks + H_time
 model = H_cost.compile()
 Q, offset = model.to_qubo()
-print(x)
+
+S = []
+for i in range(n):
+    for j in range(0,n * 2):
+        if j != i * 2 and j != i * 2 + 1:
+            S.append((i * 2,j))
+            S.append((i * 2 + 1,j))
+print(S)
