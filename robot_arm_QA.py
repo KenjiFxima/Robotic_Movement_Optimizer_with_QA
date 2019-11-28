@@ -19,6 +19,7 @@ import minorminer
 import numpy as np
 from pyqubo import Array, Constraint, Placeholder, solve_qubo
 import sys
+from pyqubo import Binary
 
 def dist_cal(start, end):
     dist = math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)
@@ -48,14 +49,12 @@ def read_distances(filename):
 
 #問題の読み込み
 arg = sys.argv[1]
-print(arg)
 task, velocity = read_distances(arg)
 n = len(velocity)
 
 # 問題インスタンスの生成
 x = Array.create('x',shape = (n,n * 2),vartype = 'BINARY')
 start = [0,0]
-print(task,velocity)
 
 w0 = []
 w = [[] for i in range(n * 2)]
@@ -70,16 +69,16 @@ w0 = np.array(w0)
 w = np.array(w)
 p = []
 for i in range(n):
-    p.append(max(np.amax(w[:n,i*2:(i+1)*2]),max(w0[i*2:(i+1)*2]))+np.amax(w[i]))
+    p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i]))
 Pt = max(p)
 H_dists = sum(x[0] * w0)
-for t in range(1,n-1):
+for t in range(1,n - 1):
     for j in range(n * 2):
         H_dists += sum(np.multiply(x[t + 1] * w[j],x[t][j]))
-H_dists = sum(x[n-1] * w0)
+H_dists = sum(x[n - 1] * w0)
 H_tasks = 0
 for i in range(n):
-    H_tasks += p[i] * ((sum(sum(x[:n,i*2:(i+1)*2])) - 1) ** 2)
+    H_tasks += p[i] * ((sum(sum(x[:n,i * 2:(i + 1) * 2])) - 1) ** 2)
 H_time = 0
 for i in range(n):
     H_time += Pt * ((sum(x[i]) - 1) ** 2)
@@ -87,12 +86,13 @@ for i in range(n):
 H_cost = H_dists + H_tasks + H_time
 model = H_cost.compile()
 Q, offset = model.to_qubo()
+
 S = []
-for i in range(n):
-    for j in range(0,n * 2):
-        if j != i * 2 and j != i * 2 + 1:
-            S.append((i * 2,j))
-            S.append((i * 2 + 1,j))
+for i in range(n - 1):
+    for j in range(n):
+        for k in range(0,n * 2):
+            S.append(('x[{0}][{1}]'.format(i,j * 2),'x[{0}][{1}]'.format(i + 1,k)))
+            S.append(('x[{0}][{1}]'.format(i,j * 2 + 1),'x[{0}][{1}]'.format(i + 1,k)))
 
 # この時点でIsing形式用のJ, h, BINARY形式用のQが生成済みである。
 # ISING形式の場合
@@ -109,6 +109,9 @@ sampler = DWaveSampler(endpoint=url, token=token, solver=solver_name)
 
 # minorminerでエンベディング
 embedding = minorminer.find_embedding(S, sampler.edgelist)
+print(sampler.edgelist)
+print('bqm : {0}'.format(bqm))
+print('embedding : {0}'.format(embedding))
 bqm_embed = embed_bqm(bqm, embedding, sampler.adjacency)
 
 # D-Waveによるサンプリング
