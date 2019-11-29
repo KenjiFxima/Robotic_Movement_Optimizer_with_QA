@@ -71,6 +71,8 @@ p = []
 for i in range(n):
     p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i]))
 Pt = max(p)
+param_tasks = Placeholder("tasks")
+param_time = Placeholder("time")
 H_dists = sum(x[0] * w0)
 for t in range(1,n - 1):
     for j in range(n * 2):
@@ -79,26 +81,38 @@ H_dists = sum(x[n - 1] * w0)
 H_tasks = 0
 for i in range(n):
     H_tasks += p[i] * ((sum(sum(x[:n,i * 2:(i + 1) * 2])) - 1) ** 2)
+H_tasks = Constraint(H_tasks, "tasks")
 H_time = 0
 for i in range(n):
     H_time += Pt * ((sum(x[i]) - 1) ** 2)
-
+H_time = Constraint(H_time, "time")
 H_cost = H_dists + H_tasks + H_time
 model = H_cost.compile()
-Q, offset = model.to_qubo()
+feed_dict = {'tasks': param_tasks, 'time': param_time}
+Q, offset = model.to_qubo(feed_dict=feed_dict)
 
 S = []
-for i in range(n - 1):
-    for j in range(n):
-        for k in range(0,n * 2):
-            S.append(('x[{0}][{1}]'.format(i,j * 2),'x[{0}][{1}]'.format(i + 1,k)))
-            S.append(('x[{0}][{1}]'.format(i,j * 2 + 1),'x[{0}][{1}]'.format(i + 1,k)))
+
+for i in range(n):
+    for j in range(n * 2):
+        S.append(('x[{0}][{1}]'.format(i, j), 'x[{0}][{1}]'.format(i, j)))
+        for k in range(i + 1, n):
+            S.append(('x[{0}][{1}]'.format(i, j), 'x[{0}][{1}]'.format(k, j)))
+            if j % 2 == 0:
+                S.append(('x[{0}][{1}]'.format(i, j), 'x[{0}][{1}]'.format(k, j + 1)))
+            else:
+                S.append(('x[{0}][{1}]'.format(i, j), 'x[{0}][{1}]'.format(k, j - 1)))
+        for k in range(j + 1, n * 2):
+            S.append(('x[{0}][{1}]'.format(i, j), 'x[{0}][{1}]'.format(i, k)))
+
+print(S)
 
 # この時点でIsing形式用のJ, h, BINARY形式用のQが生成済みである。
 # ISING形式の場合
 #bqm = dimod.BinaryQuadraticModel.from_ising(h, J)
 # BINARY形式の場合
 bqm = dimod.BinaryQuadraticModel.from_qubo(Q)
+print(bqm)
 
 # %%
 url = "https://cloud.dwavesys.com/sapi"
@@ -109,9 +123,8 @@ sampler = DWaveSampler(endpoint=url, token=token, solver=solver_name)
 
 # minorminerでエンベディング
 embedding = minorminer.find_embedding(S, sampler.edgelist)
-print(sampler.edgelist)
-print('bqm : {0}'.format(bqm))
-print('embedding : {0}'.format(embedding))
+#print('bqm : {0}'.format(bqm))
+#print('embedding : {0}'.format(embedding))
 bqm_embed = embed_bqm(bqm, embedding, sampler.adjacency)
 
 # D-Waveによるサンプリング

@@ -1,108 +1,24 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# ocean_template.py:    D-Wave Ocean SDKを用いた最適化用途のサンプリングテンプレートコード
-
-#%%
-# 本コードの実行のためには dwave-ocean-sdk モジュールがインストールされている
-# 必要があります。以下の1行のコメントアウトを解除して、dwave-ocean-sdkを
-# インストールすれば dimod, minorminerなどのD-Wave Ocean SDKに含まれる
-# モジュールとともに numpy などの依存関係のあるパッケージもインストールされる。
-#!pip install dwave-ocean-sdk
-#!pip show dwave-ocean-sdk
-#!pip show numpy
-
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# ocean_template.py:    D-Wave Ocean SDKを用いた最適化用途のサンプリングテンプレートコード
-
-#%%
-# 本コードの実行のためには dwave-ocean-sdk モジュールがインストールされている
-# 必要があります。以下の1行のコメントアウトを解除して、dwave-ocean-sdkを
-# インストールすれば dimod, minorminerなどのD-Wave Ocean SDKに含まれる
-# モジュールとともに numpy などの依存関係のあるパッケージもインストールされる。
-#!pip install dwave-ocean-sdk
-#!pip show dwave-ocean-sdk
-#!pip show numpy
-
-import dimod
-from dwave.embedding import MinimizeEnergy, embed_bqm
-from dwave.system import DWaveSampler
-import math
-import minorminer
-import numpy as np
+# 問題設定
+NUM_VER = 6
+vertices = list(range(NUM_VER))
+edges = [(0,1), (0,4), (0,5), (1,2), (1,3), (3,4), (4,5)]
 from pyqubo import Array, Constraint, Placeholder, solve_qubo
-import sys
 
-def dist_cal(start, end):
-    dist = math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)
-    return dist
+# BINARY変数
+x = Array.create('x', shape=NUM_VER, vartype='BINARY')
 
-def read_distances(filename):
-    task = []
-    s = []
-    velocity = []
-    with open(filename, 'r') as f:
-        for line in f:
-            # Skip comments
-            if line[0] == '#':
-                continue
-            else:
-                l = list(map(int, (line.strip()).split(',')))
-                s.append(list(l[0:2]))
-                s.append(list(l[2:4]))
-                velocity.append(l[4])
-    set = np.array(s)
-    n = int(len(set) / 2)
-    for i in range(n):
-        task.append(set)
-    task = np.array(task)
+# プレースホルダー
+param_cover = Placeholder("cover")
 
-    return task, velocity
+# QUBO形式で定式化
+H_cover = Constraint(sum((1-x[u])*(1-x[v]) for (u,v) in edges), "cover")
+H_vertices = sum(x)
+H = H_vertices + param_cover * H_cover
 
-#問題の読み込み
-arg = sys.argv[1]
-task, velocity = read_distances(arg)
-n = len(velocity)
+# モデルをコンパイル
+model = H.compile()
 
-# 問題インスタンスの生成
-x = Array.create('x',shape = (n,n * 2),vartype = 'BINARY')
-start = [0,0]
-
-w0 = []
-w = [[] for i in range(n * 2)]
-
-for i in range(n * 2):
-    w0.append(dist_cal(start, task[0][i]))
-for i in range(n * 2):
-    for j in range(n * 2):
-        w[j].append(dist_cal(task[0][i],task[0][j]))
-
-w0 = np.array(w0)
-w = np.array(w)
-p = []
-for i in range(n):
-    p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i]))
-Pt = max(p)
-H_dists = sum(x[0] * w0)
-for t in range(1,n-1):
-    for j in range(n * 2):
-        H_dists += sum(np.multiply(x[t + 1] * w[j],x[t][j]))
-H_dists = sum(x[n-1] * w0)
-H_tasks = 0
-for i in range(n):
-    H_tasks += p[i] * ((sum(sum(x[:n,i * 2:(i + 1) * 2])) - 1) ** 2)
-H_time = 0
-for i in range(n):
-    H_time += Pt * ((sum(x[i]) - 1) ** 2)
-
-H_cost = H_dists + H_tasks + H_time
-model = H_cost.compile()
-Q, offset = model.to_qubo()
-
-S = []
-for i in range(n):
-    for j in range(0,n * 2):
-        if j != i * 2 and j != i * 2 + 1:
-            S.append((i * 2,j))
-            S.append((i * 2 + 1,j))
-print(S)
+# プレースホルダーと合わせてQUBOを作成
+feed_dict = {"cover": param_cover}
+qubo, offset = model.to_qubo(feed_dict=feed_dict)
+print(qubo)

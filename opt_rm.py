@@ -1,15 +1,9 @@
-<<<<<<< HEAD
-=======
 import itertools
->>>>>>> ec550e7829356d401baee9f63536ed13a23081f9
 import random
 import sys
 import time
 import math
-<<<<<<< HEAD
-=======
 import numpy as np
->>>>>>> ec550e7829356d401baee9f63536ed13a23081f9
 
 
 def held_karp(task_start, task_end, velocity):
