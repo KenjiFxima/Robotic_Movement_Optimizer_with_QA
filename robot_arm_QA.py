@@ -51,44 +51,47 @@ def read_distances(filename):
 arg = sys.argv[1]
 task, velocity = read_distances(arg)
 n = len(velocity)
+row = n
+column = n * 2
 
 # 問題インスタンスの生成
-x = Array.create('x',shape = (n,n * 2),vartype = 'BINARY')
+x = Array.create('x', shape = (row * column),vartype = 'BINARY')
 start = [0,0]
 
 w0 = []
-w = [[] for i in range(n * 2)]
+w = [[] for i in range(column)]
 
-for i in range(n * 2):
+for i in range(column):
     w0.append(dist_cal(start, task[0][i]))
-for i in range(n * 2):
-    for j in range(n * 2):
+for i in range(column):
+    for j in range(column):
         w[j].append(dist_cal(task[0][i],task[0][j]))
 
 w0 = np.array(w0)
 w = np.array(w)
 p = []
-for i in range(n):
+for i in range(row):
     p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i]))
 Pt = max(p)
-param_tasks = Placeholder("tasks")
-param_time = Placeholder("time")
-H_dists = sum(x[0] * w0)
-for t in range(1,n - 1):
-    for j in range(n * 2):
-        H_dists += sum(np.multiply(x[t + 1] * w[j],x[t][j]))
-H_dists = sum(x[n - 1] * w0)
+H_dists = sum(x[0: column] * w0)
+for t in range(1,row - 1):
+    for j in range(column):
+        H_dists += sum(np.multiply(x[column * t: column * (t + 1)] * w[j],x[column * t + j]))
+H_dists += sum(x[column * (row - 1): column * row] * w0)
 H_tasks = 0
-for i in range(n):
+for i in range(row):
+    sum = 0
+    for j in range(row):
+        sum += sum(x[column * j + i: column * j + i + 2])
     H_tasks += p[i] * ((sum(sum(x[:n,i * 2:(i + 1) * 2])) - 1) ** 2)
 H_tasks = Constraint(H_tasks, "tasks")
 H_time = 0
 for i in range(n):
     H_time += Pt * ((sum(x[i]) - 1) ** 2)
 H_time = Constraint(H_time, "time")
-H_cost = H_dists + H_tasks + H_time
+H_cost = H_dists + Placeholder("tasks") * H_tasks + H_time * Placeholder("time")
 model = H_cost.compile()
-feed_dict = {'tasks': param_tasks, 'time': param_time}
+feed_dict = {'tasks': 2.0, 'time': 2.0}
 Q, offset = model.to_qubo(feed_dict=feed_dict)
 
 S = []
