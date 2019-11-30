@@ -13,6 +13,21 @@
 
 import dimod
 from dwave.embedding import MinimizeEnergy, embed_bqm
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ocean_template.py:    D-Wave Ocean SDKを用いた最適化用途のサンプリングテンプレートコード
+
+#%%
+# 本コードの実行のためには dwave-ocean-sdk モジュールがインストールされている
+# 必要があります。以下の1行のコメントアウトを解除して、dwave-ocean-sdkを
+# インストールすれば dimod, minorminerなどのD-Wave Ocean SDKに含まれる
+# モジュールとともに numpy などの依存関係のあるパッケージもインストールされる。
+#!pip install dwave-ocean-sdk
+#!pip show dwave-ocean-sdk
+#!pip show numpy
+
+import dimod
+from dwave.embedding import MinimizeEnergy, embed_bqm
 from dwave.system import DWaveSampler
 import math
 import minorminer
@@ -55,7 +70,7 @@ row = n
 column = n * 2
 
 # 問題インスタンスの生成
-x = Array.create('x', shape = (row * column),vartype = 'BINARY')
+x = Array.create('x', shape = (1, row * column),vartype = 'BINARY')
 start = [0,0]
 
 w0 = []
@@ -73,23 +88,23 @@ p = []
 for i in range(row):
     p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i]))
 Pt = max(p)
-H_dists = sum(x[0: column] * w0)
+H_dists = sum(x[0, :column] * w0)
 for t in range(1,row - 1):
     for j in range(column):
-        H_dists += sum(np.multiply(x[column * t: column * (t + 1)] * w[j],x[column * t + j]))
-H_dists += sum(x[column * (row - 1): column * row] * w0)
+        H_dists += sum(x[0, column * t: column * (t + 1)] * w[j]) * x[0, column * t + j]
+H_dists += sum(x[0, column * (row - 1): column * row] * w0)
 H_tasks = 0
 for i in range(row):
-    sum = 0
+    s = 0
     for j in range(row):
-        sum += sum(x[column * j + i: column * j + i + 2])
-    H_tasks += p[i] * ((sum(sum(x[:n,i * 2:(i + 1) * 2])) - 1) ** 2)
+        s += sum(x[0, column * j + i * 2: column * j + (i + 1) * 2])
+    H_tasks += p[i] * ((s - 1) ** 2)
 H_tasks = Constraint(H_tasks, "tasks")
 H_time = 0
-for i in range(n):
-    H_time += Pt * ((sum(x[i]) - 1) ** 2)
+for i in range(row):
+    H_time += Pt * ((sum(x[0, i * column: (i + 1) * column]) - 1) ** 2)
 H_time = Constraint(H_time, "time")
-H_cost = H_dists + Placeholder("tasks") * H_tasks + H_time * Placeholder("time")
+H_cost = H_dists + Placeholder("tasks") * H_tasks + Placeholder("time") * H_time
 model = H_cost.compile()
 feed_dict = {'tasks': 2.0, 'time': 2.0}
 Q, offset = model.to_qubo(feed_dict=feed_dict)
