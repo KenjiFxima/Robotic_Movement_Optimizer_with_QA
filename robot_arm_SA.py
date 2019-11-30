@@ -17,9 +17,9 @@ from dwave.system import DWaveSampler
 import math
 import minorminer
 import numpy as np
-from pyqubo import Array, Constraint, Placeholder, solve_qubo
+from pyqubo import Array, Constraint, Placeholder, solve_qubo, Binary
 import sys
-from pyqubo import Binary
+import re
 
 def dist_cal(start, end):
     dist = math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)
@@ -55,9 +55,12 @@ row = n
 column = n * 2
 
 # 問題インスタンスの生成
-x = Array.create('x', shape = (1, row * column),vartype = 'BINARY')
-start = [0,0]
+x = []
+for i in range(row * column):
+    x.append(Binary('x[{}]'.format(i)))
+x = Array(np.reshape(np.array(x),(1,50)))
 
+start = [0,0]
 w0 = []
 w = [[] for i in range(column)]
 
@@ -92,4 +95,8 @@ H_time = Constraint(H_time, "time")
 H_cost = H_dists + Placeholder("tasks") * H_tasks + Placeholder("time") * H_time
 model = H_cost.compile()
 feed_dict = {'tasks': 2.0, 'time': 2.0}
-Q, offset = model.to_qubo(feed_dict=feed_dict)
+qubo,offset = model.to_qubo(feed_dict=feed_dict)
+Q = {(int(re.search(r"x\[([0-9]+)\]", i)[1]),
+       int(re.search(r"x\[([0-9]+)\]", j)[1])): v for (i, j), v in qubo.items()}
+
+S = list(Q.keys())
