@@ -1,12 +1,6 @@
-##!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# ocean_template.py:    D-Wave Ocean SDKを用いた最適化用途のサンプリングテンプレートコード
 
-#%%
-# 本コードの実行のためには dwave-ocean-sdk モジュールがインストールされている
-# 必要があります。以下の1行のコメントアウトを解除して、dwave-ocean-sdkを
-# インストールすれば dimod, minorminerなどのD-Wave Ocean SDKに含まれる
-# モジュールとともに numpy などの依存関係のあるパッケージもインストールされる。
 #!pip install dwave-ocean-sdk
 #!pip show dwave-ocean-sdk
 #!pip show numpy
@@ -26,8 +20,7 @@ def dist_cal(start, end):
     return dist
 
 def read_distances(filename):
-    task = []
-    s = []
+    tasks = []
     velocity = []
     with open(filename, 'r') as f:
         for line in f:
@@ -36,80 +29,95 @@ def read_distances(filename):
                 continue
             else:
                 l = list(map(int, (line.strip()).split(',')))
-                s.append(list(l[0:2]))
-                s.append(list(l[2:4]))
+                tasks.append(list(l[0:2]))
+                tasks.append(list(l[2:4]))
                 velocity.append(l[4])
-    set = np.array(s)
-    n = int(len(set) / 2)
-    for i in range(n):
-        task.append(set)
-    task = np.array(task)
+    tasks = np.array(tasks)
 
-    return task, velocity
+    return tasks, velocity
 
-#問題の読み込み
-arg = sys.argv[1]
-task, velocity = read_distances(arg)
+#read problem(infomation of tasks)
+#arg = sys.argv[1]
+tasks, velocity = read_distances('ex.csv')
 n = len(velocity)
 row = n
 column = n * 2
 
-# 問題インスタンスの生成
+# creating instance of problem
 x = []
 for i in range(row * column):
     x.append(Binary('x[{}]'.format(i)))
 x = Array(np.reshape(np.array(x),(1,50)))
 
+#Starting point of arm
 start = [0,0]
+
+#Weight(distance of movement)
 w0 = []
 w = [[] for i in range(column)]
+wf = []
 
 for i in range(column):
-    w0.append(dist_cal(start, task[0][i]))
-for i in range(column):
+    w0.append(dist_cal(start, tasks[i]))
     for j in range(column):
-        w[j].append(dist_cal(task[0][i],task[0][j]))
-
+        if i % 2 == 0:
+            w[i].append(dist_cal(tasks[i + 1], tasks[j]))
+        else:
+            w[i].append(dist_cal(tasks[i - 1], tasks[j]))
+    if i % 2 == 0:
+        wf.append(dist_cal(tasks[i + 1], start))
+    else:
+        wf.append(dist_cal(tasks[i - 1], start))
 w0 = np.array(w0)
 w = np.array(w)
+wf = np.array(wf)
+
 p = []
+
 for i in range(row):
-    p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i]))
+    p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i * 2 : (i + 1) * 2]))
+
 Pt = max(p)
+
+#Cost function
 H_dists = sum(x[0, :column] * w0)
-for t in range(1,row - 1):
-    for j in range(column):
-        H_dists += sum(x[0, column * t: column * (t + 1)] * w[j]) * x[0, column * t + j]
-H_dists += sum(x[0, column * (row - 1): column * row] * w0)
+for t in range(1, row):
+    for i in range(column):
+        H_dists += sum(np.multiply(w[i] * x[0, column * t: column * (t + 1)], x[0, column * (t - 1) + i]))
+H_dists += sum(x[0, column * (row - 1): column * row] * wf)
+
+#Constraint-1
 H_tasks = 0
 for i in range(row):
     s = 0
     for j in range(row):
-        s += sum(x[0, column * j + i * 2: column * j + (i + 1) * 2])
+        s += x[0, column * j + (i * 2)] + x[0, column * j + (i * 2) + 1]
     H_tasks += p[i] * ((s - 1) ** 2)
 H_tasks = Constraint(H_tasks, "tasks")
+
+#Constraint-2
 H_time = 0
 for i in range(row):
     H_time += Pt * ((sum(x[0, i * column: (i + 1) * column]) - 1) ** 2)
 H_time = Constraint(H_time, "time")
+
 H_cost = H_dists + Placeholder("tasks") * H_tasks + Placeholder("time") * H_time
 model = H_cost.compile()
-feed_dict = {'tasks': 2.0, 'time': 2.0}
+
+#Weigth for Constraint
+feed_dict = {'tasks': 1.0, 'time': 1.0}
 qubo,offset = model.to_qubo(feed_dict=feed_dict)
+
 Q = {(int(re.search(r"x\[([0-9]+)\]", i)[1]),
        int(re.search(r"x\[([0-9]+)\]", j)[1])): v for (i, j), v in qubo.items()}
 
 S = list(Q.keys())
-
-
-print(S)
 
 # この時点でIsing形式用のJ, h, BINARY形式用のQが生成済みである。
 # ISING形式の場合
 #bqm = dimod.BinaryQuadraticModel.from_ising(h, J)
 # BINARY形式の場合
 bqm = dimod.BinaryQuadraticModel.from_qubo(Q)
-print(bqm)
 
 # %%
 url = "https://cloud.dwavesys.com/sapi"
@@ -120,8 +128,6 @@ sampler = DWaveSampler(endpoint=url, token=token, solver=solver_name)
 
 # minorminerでエンベディング
 embedding = minorminer.find_embedding(S, sampler.edgelist)
-#print('bqm : {0}'.format(bqm))
-#print('embedding : {0}'.format(embedding))
 bqm_embed = embed_bqm(bqm, embedding, sampler.adjacency)
 
 # D-Waveによるサンプリング
