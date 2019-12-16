@@ -37,23 +37,23 @@ def read_distances(filename):
 
     return tasks, velocity
 
-#問題の読み込み
-arg = sys.argv[1]
-tasks, velocity = read_distances(arg)
+#read problem(infomation of tasks)
+#arg = sys.argv[1]
+tasks, velocity = read_distances('ex.csv')
 n = len(velocity)
 row = n
 column = n * 2
 
-#問題インスタンスの作成
+# creating instance of problem
 x = []
 for i in range(row * column):
     x.append(Binary('x[{}]'.format(i)))
 x = Array(np.reshape(np.array(x),(1,row * column)))
 
-#アームの開始位置
+#Starting point of arm
 start = [0,0]
 
-#重み（移動距離）の計算
+#Weight(distance of movement)
 w0 = []
 w = [[] for i in range(column)]
 wf = []
@@ -78,16 +78,18 @@ p = []
 for i in range(row):
     p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i * 2 : (i + 1) * 2]))
 
+p = p / max(p)
+
 Pt = max(p)
 
-#コスト関数
+#Cost function
 H_dists = sum(x[0, :column] * w0)
 for t in range(1, row):
     for i in range(column):
         H_dists += sum(np.multiply(w[i] * x[0, column * t: column * (t + 1)], x[0, column * (t - 1) + i]))
 H_dists += sum(x[0, column * (row - 1): column * row] * wf)
 
-#制約項-1
+#Constraint-1
 H_tasks = 0
 for i in range(row):
     s = 0
@@ -96,7 +98,7 @@ for i in range(row):
     H_tasks += p[i] * ((s - 1) ** 2)
 H_tasks = Constraint(H_tasks, "tasks")
 
-#制約項-2
+#Constraint-2
 H_time = 0
 for i in range(row):
     H_time += Pt * ((sum(x[0, i * column: (i + 1) * column]) - 1) ** 2)
@@ -104,34 +106,29 @@ H_time = Constraint(H_time, "time")
 
 H_cost = H_dists + Placeholder("tasks") * H_tasks + Placeholder("time") * H_time
 model = H_cost.compile()
-
-#制約項の重み
-feed_dict = {'tasks': 1.0, 'time': 1.0}
-
-#QUBOの作成
+#Weigth for Constrain
+'''
+para = {}
+for k in range(20):
+    for l in range(20):
+'''
+feed_dict = {'tasks': 300, 'time': 700}
 qubo,offset = model.to_qubo(feed_dict=feed_dict)
 
 Q = {(int(re.search(r"x\[([0-9]+)\]", i)[1]),
        int(re.search(r"x\[([0-9]+)\]", j)[1])): v for (i, j), v in qubo.items()}
 
 sampler = neal.SimulatedAnnealingSampler()
-
-# Sampling by Neal
-
+ans = []
+# Sampling by D-Wave
 result = sampler.sample_qubo(Q, num_reads = 10000)
-
-#結果の出力
-np.set_printoptions(threshold=1e9)
-r = {}
+np.set_printoptions(threshold=100000000)
 i = 0
 j = 0
 for sample in result:
-    key = [k % column for k, v in sample.items() if v == 1]
-    key.append(result.record['num_occurrences'][i])
-    key.append(j)
-    r['{}'.format(key)] = result.record['energy'][i]
-    i += 1
-    j += 1
-r = np.array(sorted(r.items(), key=lambda x:x[1]))
-r.reshape(1,i * 2)
-print(r)
+    if [k for k, v in sample.items() if v == 1] == [3, 6, 17]:
+        i += 1
+    if [k for k, v in sample.items() if v == 1] == [4, 7, 14]:
+        j += 1
+    print(i + j)
+#para[(k,l)] = i + j

@@ -1,10 +1,11 @@
 Quantum Annealing measurements
 ave : average appearance time of correct root
 2task {ave : 2357 in 10000 (0.2357), convolution : 0.083430, s : 0.28884}
-1,2 or 3,0
+ans : 1,2 or 3,0
 3task {}
-3, 6, 17 or 4, 7 ,12
+ans : 3, 6, 17 or 4, 7 ,14
+para = (300,700)
 4task {}
-1, 5, 3, 7 or 6, 2, 4, 0
+ans : 1, 13, 19, 31 or 6, 10, 20, 24
 5task {}
-1, 5, 6, 2, 9 or 8, 3, 7, 4, 0
+ans : 1, 15, 26, 32, 49 or 8, 13, 27, 34, 40

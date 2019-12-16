@@ -76,10 +76,12 @@ p = []
 
 for i in range(row):
     p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i * 2 : (i + 1) * 2]))
+p = p / max(p)
 
 Pt = max(p)
 
 #コスト関数
+#コスト
 H_dists = sum(x[0, :column] * w0)
 for t in range(1, row):
     for i in range(column):
