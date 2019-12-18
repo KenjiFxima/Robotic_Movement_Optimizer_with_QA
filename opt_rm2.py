@@ -35,23 +35,25 @@ def held_karp(task_start, task_end, velocity):
     # in classic dynamic programming manner
     for subset_size in range(2, n):
         for subset in itertools.combinations(range(1, n), subset_size):
-            for bin in itertools
-            # Set bits for all nodes in this subset
-            bits = 0
-            for bit in subset:
-                bits |= 1 << bit * 2
-                bits |=
+            for binary in itertools.combinations(range(1, n), subset_size):
+                # Set bits for all nodes in this subset
+                bits = 0
+                for bit in subset:
+                    bits |= 1 << bit * 2
+                for bit in binary:
+                    bits |= 1 << bit * 2 + 1
 
-            # Find the lowest cost to get to this subset
-            for k in subset:
-                prev = bits & ~(1 << k)
+                # Find the lowest cost to get to this subset
+                for k in subset:
+                    for l in binary:
+                        prev = bits & ~(1 << k * 2) & ~(1 << l * 2 + 1)
 
-                res = []
-                for m in subset:
-                    if m == 0 or m == k:
-                        continue
-                    res.append((C[(prev, m)][0] + dists[m][k], m))
-                C[(bits, k)] = min(res)
+                        res = []
+                        for m in subset:
+                            if m == 0 or m == k:
+                                continue
+                            res.append((C[(prev, m)][0] + dists[m][k], m))
+                        C[(bits, k)] = min(res)
 
     # We're interested in all bits but the least significant (the start state)
     bits = (2**n - 1) - 1
@@ -109,6 +111,11 @@ def dist_cal(start, end):
     dist = math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)
     return dist
 
+def make_bin(subset_size):
+    binary = []
+    for i in range(subset_size):
+        binary.append('0b' + (bin(i)[2:]).zfill(subset_size))
+    return binary
 
 if __name__ == '__main__':
     arg = sys.argv[1]
