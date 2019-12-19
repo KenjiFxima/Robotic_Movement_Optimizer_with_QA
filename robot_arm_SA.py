@@ -9,7 +9,6 @@ import dimod
 from dwave.embedding import MinimizeEnergy, embed_bqm
 from dwave.system import DWaveSampler
 import math
-import minorminer
 import numpy as np
 from pyqubo import Array, Constraint, Placeholder, solve_qubo, Binary
 import sys
@@ -38,8 +37,8 @@ def read_distances(filename):
     return tasks, velocity
 
 #read problem(infomation of tasks)
-#arg = sys.argv[1]
-tasks, velocity = read_distances('ex.csv')
+arg = sys.argv[1]
+tasks, velocity = read_distances(arg)
 n = len(velocity)
 row = n
 column = n * 2
