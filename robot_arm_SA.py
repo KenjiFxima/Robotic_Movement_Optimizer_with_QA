@@ -47,7 +47,7 @@ column = n * 2
 x = []
 for i in range(row * column):
     x.append(Binary('x[{}]'.format(i)))
-x = Array(np.reshape(np.array(x),(1,50)))
+x = Array(np.reshape(np.array(x),(1,row * column)))
 
 #Starting point of arm
 start = [0,0]
@@ -77,6 +77,8 @@ p = []
 for i in range(row):
     p.append(max(np.amax(w[:n,i * 2:(i + 1) * 2]),max(w0[i * 2:(i + 1) * 2]))+np.amax(w[i * 2 : (i + 1) * 2]))
 
+p = p / max(p)
+
 Pt = max(p)
 
 #Cost function
@@ -103,31 +105,29 @@ H_time = Constraint(H_time, "time")
 
 H_cost = H_dists + Placeholder("tasks") * H_tasks + Placeholder("time") * H_time
 model = H_cost.compile()
-
-#Weigth for Constraint
-feed_dict = {'tasks': 1.0, 'time': 1.0}
+#Weigth for Constrain
+'''
+para = {}
+for k in range(20):
+    for l in range(20):
+'''
+feed_dict = {'tasks': 300, 'time': 700}
 qubo,offset = model.to_qubo(feed_dict=feed_dict)
 
 Q = {(int(re.search(r"x\[([0-9]+)\]", i)[1]),
        int(re.search(r"x\[([0-9]+)\]", j)[1])): v for (i, j), v in qubo.items()}
 
 sampler = neal.SimulatedAnnealingSampler()
-
+ans = []
 # Sampling by D-Wave
-
 result = sampler.sample_qubo(Q, num_reads = 10000)
-
 np.set_printoptions(threshold=100000000)
-r = {}
 i = 0
 j = 0
 for sample in result:
-    key = [k % 10 for k, v in sample.items() if v == 1]
-    key.append(result.record['num_occurrences'][i])
-    key.append(j)
-    r['{}'.format(key)] = result.record['energy'][i]
-    i += 1
-    j += 1
-r = np.array(sorted(r.items(), key=lambda x:x[1]))
-r.reshape(1,i * 2)
-print(r)
+    if [k for k, v in sample.items() if v == 1] == [3, 6, 17]:
+        i += 1
+    if [k for k, v in sample.items() if v == 1] == [4, 7, 14]:
+        j += 1
+    print(i + j)
+#para[(k,l)] = i + j
