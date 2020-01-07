@@ -49,23 +49,22 @@ def held_karp(task_start, task_end, velocity):
             for binary in make_bin(subset):
                 # Set bits for all nodes in this subset
                 bits = 0
+                print('subset:{}'.format(subset))
+                print('binary:{}'.format(binary))
                 for bit in subset:
                     bits |= 1 << bit * 2
                 for bit in binary:
                     bits |= 1 << bit * 2 + 1
-
+                print('bits:{}'.format(bin(bits)))
                 # Find the lowest cost to get to this subset
                 for k in subset:
                     prev = bits & ~(1 << k * 2)
                     if k in binary:
                         prev &= ~(1 << k * 2 + 1)
-
                     res_start = []
                     res_end = []
                     for m in subset:
-                        print(subset)
                         print(m)
-                        print(binary)
                         print(prev)
                         print(bin(prev))
                         if m == 0 or m == k:
@@ -81,11 +80,12 @@ def held_karp(task_start, task_end, velocity):
 
 
     # We're interested in all bits but the least significant (the start state)
-    bits = (2**(n * 2) - 1) - 1
-
+    bits = (2 ** ((n + 1) * 2) - 1) - 3
+    print(C)
     # Calculate optimal cost
     res = []
     for k in range(1, n):
+        print(res)
         res.append((C[(bits, k, 0)][0] + Stos_dists[k][0], k, 0))
         res.append((C[(bits, k, 1)][0] + Stoe_dists[k][0], k, 1))
     opt, parent, s_or_e = min(res)
