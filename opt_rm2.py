@@ -44,7 +44,7 @@ def held_karp(task_start, task_end, velocity):
 
     # Iterate subsets of increasing length and store intermediate results
     # in classic dynamic programming manner
-    for subset_size in range(2, n):
+    for subset_size in range(2, n+1):
         for subset in itertools.combinations(range(1, n), subset_size):
             for binary in make_bin(subset):
                 # Set bits for all nodes in this subset
@@ -56,17 +56,19 @@ def held_karp(task_start, task_end, velocity):
                 for bit in binary:
                     bits |= 1 << bit * 2 + 1
                 print('bits:{}'.format(bin(bits)))
+                print(bits)
                 # Find the lowest cost to get to this subset
                 for k in subset:
+                    print('k:{}'.format(k))
                     prev = bits & ~(1 << k * 2)
                     if k in binary:
                         prev &= ~(1 << k * 2 + 1)
+                    print(prev)
+                    print(bin(prev))
                     res_start = []
                     res_end = []
                     for m in subset:
-                        print(m)
-                        print(prev)
-                        print(bin(prev))
+                        print('m:{}'.format(m))
                         if m == 0 or m == k:
                             continue
                         if m in binary:
@@ -82,6 +84,7 @@ def held_karp(task_start, task_end, velocity):
     # We're interested in all bits but the least significant (the start state)
     bits = (2 ** ((n + 1) * 2) - 1) - 3
     print(C)
+    print(bits)
     # Calculate optimal cost
     res = []
     for k in range(1, n):
