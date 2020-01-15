@@ -47,11 +47,15 @@ def held_karp(task_start, task_end, velocity):
         for subset in itertools.combinations(range(1, n + 1), subset_size):
             for binary in make_bin(subset):
                 # Set bits for all nodes in this subset
+                print('subset:{}'.format(subset))
+                print('binary:{}'.format(binary))
                 bits = 0
                 for bit in subset:
                     bits |= 1 << bit * 2
                 for bit in binary:
                     bits |= 1 << bit * 2 + 1
+                print('bits:{}'.format(bits))
+                print('bits array:{}'.format(bin(bits)))
                 # Find the lowest cost to get to this subset
                 for k in subset:
                     removed = list(subset)
@@ -66,14 +70,12 @@ def held_karp(task_start, task_end, velocity):
                     res_end = []
                     for m in removed:
                         print('m:{}'.format(m))
-                        if m == 0 or m == k:
-                            continue
                         if m in binary:
-                            res_start.append((C[(prev, m, 1)][0] + stos_dists[m-1][k-1], m, 0))
+                            res_start.append((C[(prev, m, 1)][0] + stos_dists[m-1][k-1], m, 1))
                             res_end.append((C[(prev, m, 1)][0] + stoe_dists[m-1][k-1], m, 1))
                         else:
                             res_start.append((C[(prev, m, 0)][0] + stoe_dists[k-1][m-1], m, 0))
-                            res_end.append((C[(prev, m, 0)][0] + etoe_dists[m-1][k-1], m, 1))
+                            res_end.append((C[(prev, m, 0)][0] + etoe_dists[m-1][k-1], m, 0))
                     C[(bits, k, 0)] = min(res_start)
                     C[(bits, k, 1)] = min(res_end)
 
@@ -85,10 +87,11 @@ def held_karp(task_start, task_end, velocity):
     # Calculate optimal cost
     res = []
     for k in range(1, n):
-        res.append((C[(bits, k, 0)][0] + Stos_dists[k], k, 0))
-        res.append((C[(bits, k, 1)][0] + Stoe_dists[k], k, 1))
+        res.append((C[(bits, k, 0)][0] + Stoe_dists[k], k, 0))
+        res.append((C[(bits, k, 1)][0] + Stos_dists[k], k, 1))
     print('res:{}'.format(res))
     opt, parent, s_or_e = min(res)
+    print(parent,s_or_e)
 
     # Backtrack to find full path
     path = []
@@ -97,9 +100,11 @@ def held_karp(task_start, task_end, velocity):
         path.append(parent)
         path_which.append(s_or_e)
         new_bits = bits & ~(1 << parent * 2)
-        if s_or_e == 1:
-            new_bits &= ~(1 << parent * 2 + 1)
+        new_bits &= ~(1 << parent * 2 + 1)
         _, parent, s_or_e = C[(bits, parent, s_or_e)]
+        print('bits:{}'.format(bits))
+        print('bits array:{}'.format(bin(bits)))
+        print('newbits:{}'.format(bin(new_bits)))
         bits = new_bits
 
     # Add implicit start state
