@@ -52,43 +52,48 @@ def held_karp(task_start, task_end, velocity):
                     bits |= 1 << bit * 2
                 for bit in binary:
                     bits |= 1 << bit * 2 + 1
+
                 # Find the lowest cost to get to this subset
                 for k in subset:
                     removed = list(subset)
                     removed.remove(k)
-                    print('k:{}'.format(k))
                     prev = bits & ~(1 << k * 2)
                     if k in binary:
                         prev &= ~(1 << k * 2 + 1)
-                    print('prev:{}'.format(prev))
-                    print(bin(prev))
-                    res_start = []
-                    res_end = []
-                    for m in removed:
-                        print('m:{}'.format(m))
-                        if m == 0 or m == k:
-                            continue
-                        if m in binary:
-                            res_start.append((C[(prev, m, 1)][0] + stos_dists[m-1][k-1], m, 0))
-                            res_end.append((C[(prev, m, 1)][0] + stoe_dists[m-1][k-1], m, 1))
-                        else:
-                            res_start.append((C[(prev, m, 0)][0] + stoe_dists[k-1][m-1], m, 0))
-                            res_end.append((C[(prev, m, 0)][0] + etoe_dists[m-1][k-1], m, 1))
-                    C[(bits, k, 0)] = min(res_start)
-                    C[(bits, k, 1)] = min(res_end)
-
+                        res_end = []
+                        for m in removed:
+                            if m == 0 or m == k:
+                                continue
+                            if m in binary:
+                                res_end.append((C[(prev, m, 1)][0] + stoe_dists[m-1][k-1], m, 1))
+                            else:
+                                res_end.append((C[(prev, m, 0)][0] + etoe_dists[m-1][k-1], m, 0))
+                        C[(bits, k, 1)] = min(res_end)
+                    else:
+                        res_start = []
+                        for m in removed:
+                            if m == 0 or m == k:
+                                continue
+                            if m in binary:
+                                res_start.append((C[(prev, m, 1)][0] + stos_dists[m-1][k-1], m, 1))
+                            else:
+                                res_start.append((C[(prev, m, 0)][0] + stoe_dists[k-1][m-1], m, 0))
+                        C[(bits, k, 0)] = min(res_start)
 
     # We're interested in all bits but the least significant (the start state)
     bits = (2 ** ((n + 1) * 2) - 1) - 3
-    print(C)
-    print(bits)
     # Calculate optimal cost
     res = []
-    for k in range(1, n):
-        res.append((C[(bits, k, 0)][0] + Stos_dists[k], k, 0))
-        res.append((C[(bits, k, 1)][0] + Stoe_dists[k], k, 1))
-    print('res:{}'.format(res))
-    opt, parent, s_or_e = min(res)
+    for k in range(1, n + 1):
+        for binary in make_bin(list(range(1,n + 1))):
+            bits_cal = bits
+            for i in binary:
+                bits_cal &= ~(1 << i * 2 + 1)
+            if k in binary:
+                res.append((C[(bits_cal, k, 0)][0] + Stoe_dists[k - 1], k, 0, bits_cal))
+            else:
+                res.append((C[(bits_cal, k, 1)][0] + Stos_dists[k - 1], k, 1, bits_cal))
+    opt, parent, s_or_e, bits = min(res)
 
     # Backtrack to find full path
     path = []
