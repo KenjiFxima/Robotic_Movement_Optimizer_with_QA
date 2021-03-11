@@ -4,7 +4,6 @@
 #!pip install dwave-ocean-sdk
 #!pip show dwave-ocean-sdk
 #!pip show numpy
-
 import dimod
 from dwave.embedding import MinimizeEnergy, embed_bqm
 from dwave.system import DWaveSampler
@@ -105,12 +104,8 @@ H_time = Constraint(H_time, "time")
 
 H_cost = H_dists + Placeholder("tasks") * H_tasks + Placeholder("time") * H_time
 model = H_cost.compile()
+
 #Weigth for Constrain
-'''
-para = {}
-for k in range(20):
-    for l in range(20):
-'''
 feed_dict = {'tasks': 300, 'time': 700}
 qubo,offset = model.to_qubo(feed_dict=feed_dict)
 
@@ -119,6 +114,7 @@ Q = {(int(re.search(r"x\[([0-9]+)\]", i)[1]),
 
 sampler = neal.SimulatedAnnealingSampler()
 ans = []
+
 # Sampling by D-Wave
 result = sampler.sample_qubo(Q, num_reads = 10000)
 np.set_printoptions(threshold=100000000)
@@ -130,4 +126,3 @@ for sample in result:
     if [k for k, v in sample.items() if v == 1] == [4, 7, 14]:
         j += 1
     print(i + j)
-#para[(k,l)] = i + j

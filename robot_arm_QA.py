@@ -125,7 +125,7 @@ S = list(Q.keys())
 bqm = dimod.BinaryQuadraticModel.from_qubo(Q)
 
 url = "https://cloud.dwavesys.com/sapi"
-token = "sigU-299eaf05a65136c85cdfe87be0618aadec5edc91"
+token = "your_token"
 solver_name = "DW_2000Q_5"
 
 sampler = DWaveSampler(endpoint=url, token=token, solver=solver_name)
